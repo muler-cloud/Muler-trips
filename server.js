@@ -1,109 +1,97 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-
+const bodyParser = require('body-parser');
 const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+const port = process.env.PORT || 3000;
 
-// Подключение к MongoDB
-const client = new MongoClient(process.env.MONGODB_URI);
-let db;
+app.use(bodyParser.json());
+app.use(express.static('public'));
 
-async function connectDB() {
-    try {
-        await client.connect();
-        db = client.db('travel_split_app');
-        console.log("✅ Успешно подключено к MongoDB Atlas!");
-    } catch (e) {
-        console.error("❌ Ошибка подключения к MongoDB:", e.message);
-    }
-}
-connectDB();
+let trips = [];
+let participants = [];
+let expenses = [];
 
-app.get('/api/trips', async (req, res) => {
-    try {
-        if (!db) return res.json([]);
-        const trips = await db.collection('trips').find().sort({ _id: -1 }).toArray();
-        res.json(trips || []);
-    } catch (err) {
-        res.json([]);
-    }
+// --- API ДЛЯ ПОЕЗДОК ---
+app.get('/api/trips', (req, res) => res.json(trips));
+
+app.post('/api/trips', (req, res) => {
+    const trip = { id: Date.now().toString(), name: req.body.name };
+    trips.push(trip);
+    res.json(trip);
 });
 
-app.post('/api/trips', async (req, res) => {
-    try {
-        const id = uuidv4();
-        await db.collection('trips').insertOne({ id, name: req.body.name });
-        res.json({ id });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.delete('/api/trips/:id', (req, res) => {
+    const { id } = req.params;
+    trips = trips.filter(t => t.id !== id);
+    participants = participants.filter(p => p.tripId !== id);
+    expenses = expenses.filter(e => e.tripId !== id);
+    res.json({ success: true });
 });
 
-app.get('/api/trips/:id', async (req, res) => {
-    try {
-        const tripId = req.params.id;
-        const trip = await db.collection('trips').findOne({ id: tripId });
-        if (!trip) return res.status(404).json({ error: "Trip not found" });
+// --- API ДЛЯ УЧАСТНИКОВ ---
+app.post('/api/trips/:tripId/participants', (req, res) => {
+    const participant = { 
+        id: Date.now().toString(), 
+        tripId: req.params.tripId, 
+        name: req.body.name 
+    };
+    participants.push(participant);
+    res.json(participant);
+});
 
-        const participants = await db.collection('participants').find({ trip_id: tripId }).toArray();
-        const expenses = await db.collection('expenses').find({ trip_id: tripId }).toArray();
+// --- API ДЛЯ РАСХОДОВ И РАСЧЕТОВ ---
+app.get('/api/trips/:tripId', (req, res) => {
+    const { tripId } = req.params;
+    const trip = trips.find(t => t.id === tripId);
+    const tripParticipants = participants.filter(p => p.tripId === tripId);
+    const tripExpenses = expenses.filter(e => e.tripId === tripId);
 
-        let balances = {};
-        participants.forEach(p => balances[p.id] = 0);
-        expenses.forEach(e => {
-            const amount = parseFloat(e.amount) || 0;
-            balances[e.payer_id] = (balances[e.payer_id] || 0) + amount;
-            const share = amount / (participants.length || 1);
-            participants.forEach(p => {
-                balances[p.id] = (balances[p.id] || 0) - share;
-            });
+    // УМНЫЙ РАСЧЕТ БАЛАНСА
+    const balances = {};
+    tripParticipants.forEach(p => balances[p.id] = 0);
+
+    tripExpenses.forEach(exp => {
+        const amount = parseFloat(exp.amount);
+        const payerId = exp.payer_id;
+        
+        // Кто должен участвовать в этом расходе
+        // Если split_between не пришел, делим на всех (для старых записей)
+        const splitBetween = exp.split_between || tripParticipants.map(p => p.id);
+        const share = amount / splitBetween.length;
+
+        // Тому, кто заплатил, прибавляем всю сумму
+        if (balances.hasOwnProperty(payerId)) {
+            balances[payerId] += amount;
+        }
+
+        // У каждого, кто участвует в трате, вычитаем его долю
+        splitBetween.forEach(pId => {
+            if (balances.hasOwnProperty(pId)) {
+                balances[pId] -= share;
+            }
         });
+    });
 
-        res.json({ trip, participants, expenses, balances });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.json({
+        trip,
+        participants: tripParticipants,
+        expenses: tripExpenses,
+        balances
+    });
 });
 
-app.post('/api/trips/:id/participants', async (req, res) => {
-    try {
-        const p_id = Date.now();
-        await db.collection('participants').insertOne({ trip_id: req.params.id, id: p_id, name: req.body.name });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+app.post('/api/trips/:tripId/expenses', (req, res) => {
+    const { payer_id, amount, description, split_between } = req.body;
+    const expense = {
+        id: Date.now().toString(),
+        tripId: req.params.tripId,
+        payer_id,
+        amount: parseFloat(amount),
+        description,
+        split_between, // Массив ID участников, за которых платят
+        date: new Date().toLocaleDateString('ru-RU')
+    };
+    expenses.push(expense);
+    res.json(expense);
 });
 
-app.post('/api/trips/:id/expenses', async (req, res) => {
-    try {
-        const { payer_id, amount, description, date } = req.body;
-        await db.collection('expenses').insertOne({
-            trip_id: req.params.id,
-            payer_id: payer_id,
-            amount: parseFloat(amount) || 0,
-            description,
-            date
-        });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/trips/:id', async (req, res) => {
-    try {
-        await db.collection('trips').deleteOne({ id: req.params.id });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Сервер запущен на порту ${PORT}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));
