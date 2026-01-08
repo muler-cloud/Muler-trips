@@ -17,7 +17,8 @@ const dbPath = process.env.RENDER_DISK_PATH
 
 const db = new sqlite3.Database(dbPath);
 
-app.use(bodyParser.json());
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================
@@ -147,6 +148,7 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
 
 
 
