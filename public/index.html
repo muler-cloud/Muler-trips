@@ -2,37 +2,114 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TravelSplit — Мои поездки</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        .trip-gradient { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-        input, select { font-size: 16px !important; }
-    </style>
 </head>
-<body class="pb-24">
+<body class="bg-slate-50 pb-20">
 
-    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl text-center">
-            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <i class="fa-solid fa-lock text-2xl"></i>
-            </div>
-            <h2 class="text-xl font-bold mb-2">Вход</h2>
-            <input type="password" id="passInput" placeholder="****" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mb-4 text-center text-2xl outline-none focus:border-blue-500">
-            <button onclick="checkPass()" class="w-full trip-gradient text-white font-bold py-4 rounded-2xl shadow-lg">Войти</button>
-            <p id="passError" class="text-red-500 text-xs mt-3 hidden">Неверный пароль!</p>
+    <nav class="bg-white border-b p-4 mb-6">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <span class="font-bold text-xl text-blue-600" onclick="goHome()" style="cursor:pointer">TravelSplit</span>
         </div>
+    </nav>
+
+    <div id="home-view" class="max-w-md mx-auto px-4">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Мои поездки</h1>
+            <button onclick="showScreen('create-view')" class="bg-blue-600 text-white w-10 h-10 rounded-full">+</button>
+        </div>
+        <div id="trips-list" class="space-y-4"></div>
     </div>
 
-    <nav class="bg-white border-b sticky top-0 z-40">
-        <div class="max-w-xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2" onclick="goHome()" style="cursor:pointer">
-                <div class="w-8 h-8 trip-gradient rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-euro-sign"></i></div>
-                <span class="font-bold text-xl">TravelSplit</span>
+    <div id="create-view" class="hidden max-w-md mx-auto px-4">
+        <h1 class="text-2xl font-bold mb-4">Новая поездка</h1>
+        <input type="text" id="newTripName" placeholder="Название" class="w-full p-4 border rounded-xl mb-4">
+        <button onclick="createTrip()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">Создать</button>
+        <button onclick="goHome()" class="w-full text-slate-400 mt-2">Назад</button>
+    </div>
+
+    <div id="trip-view" class="hidden max-w-md mx-auto px-4">
+        <h1 id="tripName" class="text-2xl font-bold mb-4"></h1>
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-4">
+            <h3 class="font-bold mb-2">Участники</h3>
+            <div id="participantsList" class="flex flex-wrap gap-2 mb-4"></div>
+            <div class="flex gap-2">
+                <input type="text" id="partName" placeholder="Имя" class="border rounded p-2 flex-1">
+                <button onclick="addPart()" class="bg-blue-600 text-white px-4 rounded"> + </button>
             </div>
-            <button onclick="shareLink()" id="shareBtn" class="hidden bg-gray-100 text-gray-700 px-
+        </div>
+        <button onclick="goHome()" class="text-blue-600">← К списку поездок</button>
+    </div>
+
+    <script>
+        let currentId = null;
+
+        async function loadTrips() {
+            const res = await fetch('/api/trips');
+            const trips = await res.json();
+            document.getElementById('trips-list').innerHTML = trips.map(t => `
+                <div onclick="openTrip('${t.id}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between">
+                    <span class="font-bold">${t.name}</span>
+                    <span>➔</span>
+                </div>
+            `).join('');
+        }
+
+        async function createTrip() {
+            const name = document.getElementById('newTripName').value;
+            const res = await fetch('/api/trips', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            openTrip(data.id);
+        }
+
+        async function openTrip(id) {
+            currentId = id;
+            window.history.pushState({}, '', `/trip/${id}`);
+            const res = await fetch(`/api/trips/${id}`);
+            const data = await res.json();
+            document.getElementById('tripName').innerText = data.trip.name;
+            document.getElementById('participantsList').innerHTML = data.participants.map(p => 
+                `<span class="bg-slate-100 px-3 py-1 rounded-full text-sm">${p.name}</span>`
+            ).join('');
+            showScreen('trip-view');
+        }
+
+        async function addPart() {
+            const name = document.getElementById('partName').value;
+            await fetch(`/api/trips/${currentId}/participants`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            });
+            document.getElementById('partName').value = '';
+            openTrip(currentId);
+        }
+
+        function goHome() {
+            window.history.pushState({}, '', '/');
+            showScreen('home-view');
+            loadTrips();
+        }
+
+        function showScreen(id) {
+            ['home-view', 'create-view', 'trip-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        window.onload = () => {
+            const path = window.location.pathname;
+            if (path.startsWith('/trip/')) {
+                openTrip(path.split('/trip/')[1]);
+            } else {
+                goHome();
+            }
+        };
+    </script>
+</body>
+</html>
