@@ -5,10 +5,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 
-// ПАРОЛЬ
-const MY_PASSWORD = '0355'; 
-
-// Важно: эти строки заменяют body-parser и работают всегда
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -18,6 +14,7 @@ const dbPath = process.env.RENDER_DISK_PATH
 
 const db = new sqlite3.Database(dbPath);
 
+// Инициализация базы
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS trips (id TEXT PRIMARY KEY, name TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS participants (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id TEXT, name TEXT)`);
@@ -25,28 +22,21 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS transfers (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id TEXT, from_id INTEGER, to_id INTEGER, amount REAL, date TEXT)`);
 });
 
-// ПРОВЕРКА ПАРОЛЯ С ЛОГАМИ
-app.post('/api/login', (req, res) => {
-    const receivedPass = req.body.password;
-    console.log("LOG: Попытка входа. Получено:", receivedPass, "Ожидалось:", MY_PASSWORD);
-    
-    if (String(receivedPass) === String(MY_PASSWORD)) {
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ error: 'Wrong password' });
-    }
-});
-
-// Все остальные API (кратко для проверки)
+// Получить все поездки
 app.get('/api/trips', (req, res) => {
-    db.all(`SELECT * FROM trips`, (err, rows) => res.json(rows || []));
+    db.all(`SELECT * FROM trips ORDER BY rowid DESC`, (err, rows) => res.json(rows || []));
 });
 
+// Создать поездку
 app.post('/api/trips', (req, res) => {
     const id = uuidv4();
-    db.run(`INSERT INTO trips (id, name) VALUES (?, ?)`, [id, req.body.name], () => res.json({ id }));
+    db.run(`INSERT INTO trips (id, name) VALUES (?, ?)`, [id, req.body.name], (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ id });
+    });
 });
 
+// Получить одну поездку
 app.get('/api/trips/:id', (req, res) => {
     const tripId = req.params.id;
     db.get(`SELECT * FROM trips WHERE id = ?`, [tripId], (err, trip) => {
@@ -55,6 +45,11 @@ app.get('/api/trips/:id', (req, res) => {
             res.json({ trip, participants: participants || [], expenses: [], transfers: [], balances: {} });
         });
     });
+});
+
+// Маршрут для добавления участников (минимум для работы)
+app.post('/api/trips/:id/participants', (req, res) => {
+    db.run(`INSERT INTO participants (trip_id, name) VALUES (?, ?)`, [req.params.id, req.body.name], (err) => res.json({ success: true }));
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
