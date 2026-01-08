@@ -9,7 +9,7 @@ const app = express();
 // ==========================================
 // НАСТРОЙКИ: ПАРОЛЬ И ПУТЬ К БАЗЕ
 // ==========================================
-const MY_PASSWORD = 'hamsa'; // <-- ТВОЙ ПАРОЛЬ (можешь изменить)
+const MY_PASSWORD = '0355'; // <-- ТВОЙ ПАРОЛЬ (можешь изменить)
 
 const dbPath = process.env.RENDER_DISK_PATH 
     ? path.join(process.env.RENDER_DISK_PATH, 'tripdata.db') 
@@ -144,4 +144,5 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
 
