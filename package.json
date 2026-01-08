@@ -1,19 +1,14 @@
 {
-  "name": "muler-trips",
+  "name": "travelsplit",
   "version": "1.0.0",
-  "description": "Travel expenses calculator with MongoDB storage",
+  "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "mongodb": "^6.3.0",
-    "path": "^0.12.7",
-    "uuid": "^9.0.0"
-  },
-  "engines": {
-    "node": ">=14.0.0"
+    "body-parser": "^1.20.2",
+    "mongoose": "^8.0.0"
   }
 }
