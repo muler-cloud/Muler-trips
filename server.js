@@ -72,8 +72,21 @@ app.post('/api/trips/:id/transfers', (req, res) => {
     db.run(`INSERT INTO transfers (trip_id, from_id, to_id, amount, date) VALUES (?, ?, ?, ?, ?)`,
         [req.params.id, from_id, to_id, amount, date], () => res.json({ success: true }));
 });
+// Удаление поездки
+app.delete('/api/trips/:id', (req, res) => {
+    const tripId = req.params.id;
+    db.run(`DELETE FROM trips WHERE id = ?`, [tripId], (err) => {
+        if (err) return res.status(500).json(err);
+        // Также удаляем всех участников и расходы этой поездки
+        db.run(`DELETE FROM participants WHERE trip_id = ?`, [tripId]);
+        db.run(`DELETE FROM expenses WHERE trip_id = ?`, [tripId]);
+        db.run(`DELETE FROM transfers WHERE trip_id = ?`, [tripId]);
+        res.json({ success: true });
+    });
+});
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
