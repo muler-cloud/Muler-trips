@@ -1,51 +1,77 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// ЗАМЕНИ ЭТУ СТРОКУ на свою ссылку из MongoDB Atlas (или используй переменную окружения)
+const MONGO_URI = process.env.MONGODB_URI || "ТВОЯ_ССЫЛКА_ИЗ_MONGODB_ATLAS";
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('Connected to MongoDB!'))
+  .catch(err => console.error('Could not connect to MongoDB', err));
+
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-let trips = [];
-let participants = [];
-let expenses = [];
+// --- СХЕМЫ ДАННЫХ ---
+const TripSchema = new mongoose.Schema({ name: String });
+const Trip = mongoose.model('Trip', TripSchema);
 
-// API ПОЕЗДОК
-app.get('/api/trips', (req, res) => res.json(trips));
-app.post('/api/trips', (req, res) => {
-    const trip = { id: Date.now().toString(), name: req.body.name };
-    trips.push(trip);
+const ParticipantSchema = new mongoose.Schema({ tripId: String, name: String });
+const Participant = mongoose.model('Participant', ParticipantSchema);
+
+const ExpenseSchema = new mongoose.Schema({
+    tripId: String,
+    payer_id: String,
+    amount: Number,
+    description: String,
+    split_between: [String],
+    date: { type: String, default: () => new Date().toLocaleDateString('ru-RU') }
+});
+const Expense = mongoose.model('Expense', ExpenseSchema);
+
+// --- API ---
+
+app.get('/api/trips', async (req, res) => {
+    const trips = await Trip.find();
+    res.json(trips);
+});
+
+app.post('/api/trips', async (req, res) => {
+    const trip = new Trip({ name: req.body.name });
+    await trip.save();
     res.json(trip);
 });
-app.delete('/api/trips/:id', (req, res) => {
-    const { id } = req.params;
-    trips = trips.filter(t => t.id !== id);
-    participants = participants.filter(p => p.tripId !== id);
-    expenses = expenses.filter(e => e.tripId !== id);
+
+app.delete('/api/trips/:id', async (req, res) => {
+    await Trip.findByIdAndDelete(req.params.id);
+    await Participant.deleteMany({ tripId: req.params.id });
+    await Expense.deleteMany({ tripId: req.params.id });
     res.json({ success: true });
 });
 
-// API УЧАСТНИКОВ
-app.post('/api/trips/:tripId/participants', (req, res) => {
-    const participant = { id: Date.now().toString(), tripId: req.params.tripId, name: req.body.name };
-    participants.push(participant);
+app.post('/api/trips/:tripId/participants', async (req, res) => {
+    const participant = new Participant({ tripId: req.params.tripId, name: req.body.name });
+    await participant.save();
     res.json(participant);
 });
 
-// API ДЕТАЛЕЙ И РАСЧЕТОВ
-app.get('/api/trips/:tripId', (req, res) => {
+app.get('/api/trips/:tripId', async (req, res) => {
     const { tripId } = req.params;
-    const trip = trips.find(t => t.id === tripId);
-    const tripParts = participants.filter(p => p.tripId === tripId);
-    const tripExps = expenses.filter(e => e.tripId === tripId);
+    const trip = await Trip.findById(tripId);
+    const tripParts = await Participant.find({ tripId });
+    const tripExps = await Expense.find({ tripId });
 
     const balances = {};
     tripParts.forEach(p => balances[p.id] = 0);
 
     tripExps.forEach(exp => {
-        const amount = parseFloat(exp.amount);
+        const amount = exp.amount;
         const payerId = exp.payer_id;
-        const splitBetween = exp.split_between || tripParts.map(p => p.id);
+        const splitBetween = (exp.split_between && exp.split_between.length > 0) 
+            ? exp.split_between 
+            : tripParts.map(p => p.id);
         const share = amount / splitBetween.length;
 
         if (balances.hasOwnProperty(payerId)) balances[payerId] += amount;
@@ -54,7 +80,7 @@ app.get('/api/trips/:tripId', (req, res) => {
         });
     });
 
-    // Расчет "Кто кому должен"
+    // Алгоритм долгов (тот же самый)
     const debts = [];
     const debtors = [], creditors = [];
     Object.keys(balances).forEach(id => {
@@ -76,18 +102,16 @@ app.get('/api/trips/:tripId', (req, res) => {
     res.json({ trip, participants: tripParts, expenses: tripExps, balances, debts });
 });
 
-app.post('/api/trips/:tripId/expenses', (req, res) => {
-    const expense = {
-        id: Date.now().toString(),
+app.post('/api/trips/:tripId/expenses', async (req, res) => {
+    const expense = new Expense({
         tripId: req.params.tripId,
         payer_id: req.body.payer_id,
         amount: parseFloat(req.body.amount),
         description: req.body.description,
-        split_between: req.body.split_between,
-        date: new Date().toLocaleDateString('ru-RU')
-    };
-    expenses.push(expense);
+        split_between: req.body.split_between
+    });
+    await expense.save();
     res.json(expense);
 });
 
-app.listen(port, () => console.log(`Server on ${port}`));
+app.listen(port, () => console.log(`Server connected to DB and running on ${port}`));
