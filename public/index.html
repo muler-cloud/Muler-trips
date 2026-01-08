@@ -2,114 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TravelSplit — Мои поездки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TravelSplit — Расходы в поездке</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .trip-gradient { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    </style>
 </head>
-<body class="bg-slate-50 pb-20">
+<body class="pb-24">
 
-    <nav class="bg-white border-b p-4 mb-6">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <span class="font-bold text-xl text-blue-600" onclick="goHome()" style="cursor:pointer">TravelSplit</span>
+    <nav class="bg-white border-b sticky top-0 z-40">
+        <div class="max-w-xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2" onclick="goHome()" style="cursor:pointer">
+                <div class="w-8 h-8 trip-gradient rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-euro-sign"></i></div>
+                <span class="font-bold text-xl">TravelSplit</span>
+            </div>
+            <button onclick="shareLink()" id="shareBtn" class="hidden bg-gray-100 px-3 py-2 rounded-xl text-sm font-semibold">
+                <i class="fa-solid fa-share"></i>
+            </button>
         </div>
     </nav>
 
-    <div id="home-view" class="max-w-md mx-auto px-4">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Мои поездки</h1>
-            <button onclick="showScreen('create-view')" class="bg-blue-600 text-white w-10 h-10 rounded-full">+</button>
+    <div id="home-view" class="max-w-md mx-auto px-4 pt-8">
+        <div class="flex justify-between items-end mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Мои поездки</h1>
+                <p class="text-slate-500 text-sm">Куда отправимся?</p>
+            </div>
+            <button onclick="showScreen('create-view')" class="w-12 h-12 trip-gradient text-white rounded-2xl shadow-lg flex items-center justify-center">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
         </div>
         <div id="trips-list" class="space-y-4"></div>
     </div>
 
-    <div id="create-view" class="hidden max-w-md mx-auto px-4">
-        <h1 class="text-2xl font-bold mb-4">Новая поездка</h1>
-        <input type="text" id="newTripName" placeholder="Название" class="w-full p-4 border rounded-xl mb-4">
-        <button onclick="createTrip()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">Создать</button>
-        <button onclick="goHome()" class="w-full text-slate-400 mt-2">Назад</button>
+    <div id="create-view" class="hidden max-w-md mx-auto px-6 pt-12">
+        <button onclick="goHome()" class="text-slate-400 mb-4 flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Назад</button>
+        <h1 class="text-3xl font-bold mb-6">Новое приключение</h1>
+        <form onsubmit="createTrip(event)" class="space-y-4">
+            <input type="text" id="newTripName" placeholder="Название (напр. Эйлат 2026)" required class="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl outline-none">
+            <button type="submit" class="w-full trip-gradient text-white font-bold py-5 rounded-2xl shadow-lg">Создать</button>
+        </form>
     </div>
 
-    <div id="trip-view" class="hidden max-w-md mx-auto px-4">
-        <h1 id="tripName" class="text-2xl font-bold mb-4"></h1>
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-4">
-            <h3 class="font-bold mb-2">Участники</h3>
-            <div id="participantsList" class="flex flex-wrap gap-2 mb-4"></div>
-            <div class="flex gap-2">
-                <input type="text" id="partName" placeholder="Имя" class="border rounded p-2 flex-1">
-                <button onclick="addPart()" class="bg-blue-600 text-white px-4 rounded"> + </button>
-            </div>
+    <div id="trip-view" class="hidden max-w-xl mx-auto p-4 space-y-4">
+        <div class="trip-gradient rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+            <h1 id="tripName" class="text-2xl font-bold"></h1>
+            <i class="fa-solid fa-plane absolute -bottom-4 -right-4 text-8xl opacity-10 -rotate-12"></i>
         </div>
-        <button onclick="goHome()" class="text-blue-600">← К списку поездок</button>
+
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Компания</h3><button onclick="openModal('addParticipantModal')" class="text-blue-600 font-bold text-sm">+ Друг</button></div>
+            <div id="participantsList" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="font-bold mb-4">Кто кому должен:</h3>
+            <div id="debtsList" class="space-y-3 text-sm"></div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="font-bold mb-4 text-sm uppercase tracking-wider text-slate-400">Расходы по людям</h3>
+            <div class="h-48"><canvas id="expensesChart"></canvas></div>
+        </div>
     </div>
 
-    <script>
-        let currentId = null;
+    <div id="actionButtons" class="hidden fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+        <button onclick="openModal('transferModal')" class="w-14 h-14 rounded-2xl bg-emerald-500 text-white shadow-lg flex items-center justify-center"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+        <button onclick="openModal('expenseModal')" class="w-16 h-16 rounded-2xl trip-gradient text-white shadow-xl flex items-center justify-center border-4 border-white"><i class="fa-solid fa-plus text-2xl"></i></button>
+    </div>
 
-        async function loadTrips() {
-            const res = await fetch('/api/trips');
-            const trips = await res.json();
-            document.getElementById('trips-list').innerHTML = trips.map(t => `
-                <div onclick="openTrip('${t.id}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between">
-                    <span class="font-bold">${t.name}</span>
-                    <span>➔</span>
-                </div>
-            `).join('');
-        }
-
-        async function createTrip() {
-            const name = document.getElementById('newTripName').value;
-            const res = await fetch('/api/trips', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name })
-            });
-            const data = await res.json();
-            openTrip(data.id);
-        }
-
-        async function openTrip(id) {
-            currentId = id;
-            window.history.pushState({}, '', `/trip/${id}`);
-            const res = await fetch(`/api/trips/${id}`);
-            const data = await res.json();
-            document.getElementById('tripName').innerText = data.trip.name;
-            document.getElementById('participantsList').innerHTML = data.participants.map(p => 
-                `<span class="bg-slate-100 px-3 py-1 rounded-full text-sm">${p.name}</span>`
-            ).join('');
-            showScreen('trip-view');
-        }
-
-        async function addPart() {
-            const name = document.getElementById('partName').value;
-            await fetch(`/api/trips/${currentId}/participants`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name })
-            });
-            document.getElementById('partName').value = '';
-            openTrip(currentId);
-        }
-
-        function goHome() {
-            window.history.pushState({}, '', '/');
-            showScreen('home-view');
-            loadTrips();
-        }
-
-        function showScreen(id) {
-            ['home-view', 'create-view', 'trip-view'].forEach(s => document.getElementById(s).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        window.onload = () => {
-            const path = window.location.pathname;
-            if (path.startsWith('/trip/')) {
-                openTrip(path.split('/trip/')[1]);
-            } else {
-                goHome();
-            }
-        };
-    </script>
-</body>
-</html>
+    <div id="expenseModal" class="hidden fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6">
+            <h3 class="font-bold mb-4">Новый расход</h3>
+            <select id="expPayer" class="w-full p-4 bg-slate-50 rounded
