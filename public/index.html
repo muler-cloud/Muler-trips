@@ -49,3 +49,201 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 id="tripTitle" class="text-2xl font-bold"></h2>
                 <button onclick="deleteCurrentTrip()" class="text-red-400 p-2">
+                    <i class="fas fa-trash-can"></i>
+                </button>
+            </div>
+
+            <div id="balances" class="bg-white rounded-2xl p-4 shadow-sm border mb-6 space-y-3">
+                </div>
+
+            <h3 class="font-bold text-gray-500 uppercase text-sm mb-3">Расходы</h3>
+            <div id="expensesList" class="space-y-2">
+                </div>
+        </div>
+    </main>
+
+    <div id="actionButtons" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-4 z-20 w-full max-w-xs px-4">
+        <button onclick="openParticipantModal()" class="flex-1 bg-white border-2 border-blue-600 text-blue-600 p-3 rounded-xl font-bold shadow-xl">
+            + <i class="fas fa-user"></i>
+        </button>
+        <button onclick="openExpenseModal()" class="flex-[2] bg-blue-600 text-white p-3 rounded-xl font-bold shadow-xl flex items-center justify-center gap-2">
+            <i class="fas fa-plus"></i> Добавить расход
+        </button>
+    </div>
+
+    <script>
+        let currentTripId = null;
+
+        // Показ экранов
+        function showScreen(id) {
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('create-view').classList.add('hidden');
+            document.getElementById('trip-view').classList.add('hidden');
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('shareBtn').classList.add('hidden');
+
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'trip-view') {
+                document.getElementById('actionButtons').classList.remove('hidden');
+                document.getElementById('shareBtn').classList.remove('hidden');
+            }
+        }
+
+        function goHome() {
+            currentTripId = null;
+            window.history.pushState({}, '', '/');
+            showScreen('home-view');
+            loadTrips();
+        }
+
+        // Загрузка списка поездок
+        async function loadTrips() {
+            const res = await fetch('/api/trips');
+            const trips = await res.json();
+            const list = document.getElementById('tripsList');
+            list.innerHTML = trips.length ? '' : '<p class="text-gray-400 text-center py-10">У вас пока нет поездок</p>';
+            
+            trips.forEach(trip => {
+                const div = document.createElement('div');
+                div.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center active:scale-95 transition-transform";
+                div.onclick = () => openTrip(trip.id);
+                div.innerHTML = `
+                    <span class="font-bold text-lg">${trip.name}</span>
+                    <i class="fas fa-chevron-right text-gray-300"></i>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Создание поездки
+        async function createTrip() {
+            const nameField = document.getElementById('newTripName');
+            const name = nameField.value.trim();
+            if (!name) return alert("Введите название!");
+
+            const res = await fetch('/api/trips', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            nameField.value = '';
+            openTrip(data.id);
+        }
+
+        // Открытие поездки
+        async function openTrip(id) {
+            currentTripId = id;
+            window.history.pushState({}, '', `/trip/${id}`);
+            showScreen('trip-view');
+            await loadTripData();
+        }
+
+        async function loadTripData() {
+            if (!currentTripId) return;
+            const res = await fetch(`/api/trips/${currentTripId}`);
+            if (!res.ok) return goHome();
+            const data = await res.json();
+
+            document.getElementById('tripTitle').innerText = data.trip.name;
+            
+            // Отрисовка балансов
+            const balancesDiv = document.getElementById('balances');
+            balancesDiv.innerHTML = data.participants.length ? '' : '<p class="text-sm text-gray-400">Добавьте участников</p>';
+            
+            data.participants.forEach(p => {
+                const bal = data.balances[p.id] || 0;
+                const color = bal >= 0 ? 'text-green-600' : 'text-red-500';
+                balancesDiv.innerHTML += `
+                    <div class="flex justify-between items-center font-medium">
+                        <span>${p.name}</span>
+                        <span class="${color}">${bal > 0 ? '+' : ''}${bal.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+
+            // Отрисовка списка расходов
+            const expList = document.getElementById('expensesList');
+            expList.innerHTML = data.expenses.length ? '' : '<p class="text-gray-400 text-center py-4">Расходов пока нет</p>';
+            data.expenses.reverse().forEach(e => {
+                const payer = data.participants.find(p => p.id === e.payer_id)?.name || 'Удален';
+                expList.innerHTML += `
+                    <div class="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <div class="font-bold">${e.description}</div>
+                            <div class="text-xs text-gray-400">${payer} • ${e.date}</div>
+                        </div>
+                        <div class="font-bold text-gray-700">${e.amount.toFixed(2)}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function openParticipantModal() {
+            const name = prompt("Имя участника:");
+            if (name) addParticipant(name);
+        }
+
+        async function addParticipant(name) {
+            await fetch(`/api/trips/${currentTripId}/participants`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            });
+            loadTripData();
+        }
+
+        function openExpenseModal() {
+            const amount = prompt("Сумма:");
+            if (!amount) return;
+            const desc = prompt("За что (описание):");
+            const date = new Date().toLocaleDateString('ru-RU');
+            
+            // Простое решение: платит первый участник, если не выбрано другое (для упрощения UI)
+            // В идеале тут нужно выпадающее меню
+            addExpense(amount, desc, date);
+        }
+
+        async function addExpense(amount, description, date) {
+            // Берем первого участника как плательщика для теста (можно улучшить)
+            const res = await fetch(`/api/trips/${currentTripId}`);
+            const data = await res.json();
+            if (!data.participants.length) return alert("Сначала добавьте участников!");
+
+            await fetch(`/api/trips/${currentTripId}/expenses`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    payer_id: data.participants[0].id, 
+                    amount: parseFloat(amount), 
+                    description, 
+                    date 
+                })
+            });
+            loadTripData();
+        }
+
+        async function deleteCurrentTrip() {
+            if (!confirm("Удалить эту поездку навсегда?")) return;
+            await fetch(`/api/trips/${currentTripId}`, { method: 'DELETE' });
+            goHome();
+        }
+
+        function shareTrip() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url);
+            alert("Ссылка на поездку скопирована!");
+        }
+
+        // Инициализация при загрузке
+        window.onload = () => {
+            const path = window.location.pathname;
+            if (path.startsWith('/trip/')) {
+                openTrip(path.split('/')[2]);
+            } else {
+                goHome();
+            }
+        };
+    </script>
+</body>
+</html>
