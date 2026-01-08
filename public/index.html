@@ -240,6 +240,53 @@
                 document.getElementById('shareBtn').classList.remove('hidden');
             }
         }
+        async function submitExpense() {
+    const payer_id = document.getElementById('expPayer').value;
+    const amount = parseFloat(document.getElementById('expAmount').value);
+    const description = document.getElementById('expDesc').value;
+
+    if (!payer_id || !amount || !description) return alert('Заполни все поля!');
+
+    await fetch(`/api/trips/${currentTripId}/expenses`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            payer_id: parseInt(payer_id), 
+            amount, 
+            description, 
+            date: new Date().toISOString() 
+        })
+    });
+
+    closeModal('expenseModal');
+    document.getElementById('expAmount').value = '';
+    document.getElementById('expDesc').value = '';
+    loadTripData(); // Обновляем экран, чтобы увидеть долги
+}
+
+async function submitTransfer() {
+    const from_id = document.getElementById('trFrom').value;
+    const to_id = document.getElementById('trTo').value;
+    const amount = parseFloat(document.getElementById('trAmount').value);
+
+    if (from_id === to_id) return alert('Выбери разных людей!');
+    if (!amount) return alert('Введи сумму!');
+
+    await fetch(`/api/trips/${currentTripId}/transfers`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            from_id: parseInt(from_id), 
+            to_id: parseInt(to_id), 
+            amount, 
+            date: new Date().toISOString() 
+        })
+    });
+
+    closeModal('transferModal');
+    document.getElementById('trAmount').value = '';
+    loadTripData();
+}
 
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
