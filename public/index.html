@@ -3,41 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TravelSplit Israel</title>
+    <title>TravelSplit — Учёт расходов</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>.hidden { display: none; } body { font-family: -apple-system, sans-serif; }</style>
+    <style>
+        .hidden { display: none; }
+        body { font-family: -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .card-shadow { box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05); }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen pb-24">
-    <header class="bg-white border-b sticky top-0 z-10 p-4 flex justify-between items-center shadow-sm">
-        <h1 class="text-xl font-bold text-blue-600 cursor-pointer" onclick="goHome()">TravelSplit</h1>
+<body class="bg-[#f8f9fc] min-h-screen pb-24">
+
+    <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20 p-4 flex justify-between items-center shadow-sm">
+        <h1 class="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer" onclick="goHome()">
+            <i class="fas fa-paper-plane mr-2 text-blue-600"></i>TravelSplit
+        </h1>
     </header>
+
     <main class="p-4 max-w-md mx-auto">
+        
         <div id="home-view">
-            <h2 class="text-2xl font-bold mb-4">Мои поездки</h2>
-            <div id="tripsList" class="space-y-3"></div>
-            <button onclick="showScreen('create-view')" class="w-full mt-6 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg">+ Новая поездка</button>
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-3xl font-black text-gray-900">Поездки</h2>
+            </div>
+            <div id="tripsList" class="space-y-4"></div>
+            
+            <button onclick="showScreen('create-view')" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all">
+                <i class="fas fa-plus mr-2"></i> Создать новую
+            </button>
         </div>
+
         <div id="create-view" class="hidden">
-            <button onclick="goHome()" class="text-blue-600 mb-6 flex items-center"><i class="fas fa-arrow-left mr-2"></i> Назад</button>
-            <input type="text" id="newTripName" class="w-full p-4 border rounded-2xl mb-6 shadow-sm" placeholder="Напр: Эйлат 2026">
-            <button onclick="createTrip()" class="w-full bg-green-600 text-white p-4 rounded-2xl font-bold">Создать</button>
+            <button onclick="goHome()" class="text-blue-600 mb-8 flex items-center font-semibold">
+                <i class="fas fa-chevron-left mr-2"></i> Вернуться к списку
+            </button>
+            <h2 class="text-2xl font-black text-gray-900 mb-2">Куда едем?</h2>
+            <p class="text-gray-500 mb-6 text-sm">Назовите поездку, чтобы не запутаться</p>
+            <input type="text" id="newTripName" class="w-full p-5 bg-white border border-gray-100 rounded-2xl mb-6 shadow-sm outline-none focus:ring-4 focus:ring-blue-100 transition-all text-lg" placeholder="Напр: Тель-Авив 2026">
+            <button onclick="createTrip()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-lg">Поехали!</button>
         </div>
+
         <div id="trip-view" class="hidden">
             <div class="flex justify-between items-center mb-6">
-                <h2 id="tripTitle" class="text-2xl font-bold truncate"></h2>
-                <button onclick="deleteCurrentTrip()" class="text-red-300"><i class="fas fa-trash"></i></button>
+                <h2 id="tripTitle" class="text-2xl font-black text-gray-900 truncate pr-4"></h2>
+                <button onclick="deleteCurrentTrip()" class="w-10 h-10 flex items-center justify-center rounded-full bg-red-50 text-red-400 hover:bg-red-500 hover:text-white transition-all">
+                    <i class="fas fa-trash-alt text-sm"></i>
+                </button>
             </div>
-            <div class="bg-white rounded-3xl p-5 shadow-sm border mb-8">
-                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Баланс</h3>
-                <div id="balances" class="space-y-3"></div>
+
+            <div class="bg-white rounded-[2rem] p-6 card-shadow border border-gray-50 mb-8">
+                <div class="flex items-center mb-4">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                    <h3 class="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Кто сколько должен</h3>
+                </div>
+                <div id="balances" class="space-y-4"></div>
+            </div>
+
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h3 class="font-black text-gray-400 uppercase text-[11px] tracking-[0.2em]">История трат</h3>
+                <span id="expenseCount" class="text-[10px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-bold">0</span>
             </div>
             <div id="expensesList" class="space-y-3"></div>
         </div>
     </main>
-    <div id="actionButtons" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 w-full max-w-xs px-4">
-        <button onclick="openParticipantModal()" class="flex-1 bg-white border-2 border-blue-600 text-blue-600 p-4 rounded-2xl font-bold shadow-xl"><i class="fas fa-user-plus"></i></button>
-        <button onclick="openExpenseModal()" class="flex-[3] bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-xl">+ Расход</button>
+
+    <div id="actionButtons" class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-4 w-full max-w-xs px-4">
+        <button onclick="openParticipantModal()" class="w-16 bg-white border border-gray-100 text-blue-600 rounded-2xl font-bold shadow-xl active:scale-90 transition-all">
+            <i class="fas fa-user-plus"></i>
+        </button>
+        <button onclick="openExpenseModal()" class="flex-grow bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-xl shadow-blue-200 active:scale-95 transition-all flex items-center justify-center">
+            <i class="fas fa-plus-circle mr-2"></i> Добавить расход
+        </button>
     </div>
     <script>
         let currentTripId = null;
@@ -47,6 +83,7 @@
             document.getElementById('create-view').classList.add('hidden');
             document.getElementById('trip-view').classList.add('hidden');
             document.getElementById('actionButtons').classList.add('hidden');
+            
             const target = document.getElementById(id);
             if (target) {
                 target.classList.remove('hidden');
@@ -57,49 +94,82 @@
         function goHome() { currentTripId = null; showScreen('home-view'); loadTrips(); }
 
         async function loadTrips() {
-            const res = await fetch('/api/trips');
-            const data = await res.json();
-            document.getElementById('tripsList').innerHTML = data.map(t => `
-                <div onclick="openTrip('${t.id}')" class="bg-white p-5 rounded-2xl shadow-sm border flex justify-between items-center cursor-pointer">
-                    <span class="font-bold text-lg text-gray-700">${t.name}</span>
-                    <i class="fas fa-chevron-right text-gray-300"></i>
-                </div>`).join('') || '<p class="text-center text-gray-400 py-10">Нет поездок</p>';
+            try {
+                const res = await fetch('/api/trips');
+                const data = await res.json();
+                const list = document.getElementById('tripsList');
+                list.innerHTML = data.map(t => `
+                    <div onclick="openTrip('${t.id}')" class="bg-white p-6 rounded-[1.5rem] card-shadow border border-gray-50 flex justify-between items-center cursor-pointer active:scale-[0.98] transition-all">
+                        <div>
+                            <span class="block text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Поездка</span>
+                            <span class="text-xl font-bold text-gray-800">${t.name}</span>
+                        </div>
+                        <div class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </div>
+                    </div>
+                `).join('') || '<div class="text-center py-12"><i class="fas fa-map-marked-alt text-4xl text-gray-200 mb-4 block"></i><p class="text-gray-400 font-medium">Пока нет активных поездок</p></div>';
+            } catch (e) { console.error(e); }
         }
 
         async function createTrip() {
-            const name = document.getElementById('newTripName').value.trim();
-            if(!name) return alert("Введите название!");
+            const input = document.getElementById('newTripName');
+            const name = input.value.trim();
+            if(!name) return;
             const res = await fetch('/api/trips', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ name })
             });
             const data = await res.json();
+            input.value = '';
             openTrip(data.id);
         }
 
-        async function openTrip(id) { currentTripId = id; showScreen('trip-view'); loadTripData(); }
+        async function openTrip(id) {
+            currentTripId = id;
+            showScreen('trip-view');
+            loadTripData();
+        }
 
         async function loadTripData() {
             const res = await fetch(`/api/trips/${currentTripId}`);
             const data = await res.json();
             document.getElementById('tripTitle').innerText = data.trip.name;
+            document.getElementById('expenseCount').innerText = data.expenses.length;
 
-            document.getElementById('balances').innerHTML = data.participants.map(p => {
+            const balDiv = document.getElementById('balances');
+            balDiv.innerHTML = data.participants.map(p => {
                 const b = data.balances[p.id] || 0;
-                return `<div class="flex justify-between items-center">
-                    <span class="font-medium text-gray-600">${p.name}</span>
-                    <span class="${b >= 0 ? 'text-green-600' : 'text-red-500'} font-bold">${b > 0 ? '+' : ''}${b.toFixed(2)}</span>
-                </div>`;
-            }).join('') || '<p class="text-gray-400 text-xs text-center">Добавьте людей</p>';
+                const isPos = b >= 0;
+                return `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-700">${p.name}</span>
+                        <div class="text-right">
+                            <span class="${isPos ? 'text-green-500' : 'text-red-500'} font-black text-lg">
+                                ${isPos ? '+' : ''}${b.toFixed(0)} ₪
+                            </span>
+                        </div>
+                    </div>`;
+            }).join('') || '<p class="text-gray-400 text-sm text-center py-2">Нажмите +, чтобы добавить людей</p>';
 
-            document.getElementById('expensesList').innerHTML = data.expenses.slice().reverse().map(e => {
+            const expDiv = document.getElementById('expensesList');
+            expDiv.innerHTML = data.expenses.slice().reverse().map(e => {
                 const payer = data.participants.find(p => String(p.id) === String(e.payer_id))?.name || '???';
-                return `<div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-                    <div><div class="font-bold text-gray-800 text-sm">${e.description}</div><div class="text-[9px] text-gray-400 font-bold uppercase">ПЛАТИЛ: ${payer}</div></div>
-                    <div class="text-right text-blue-600 font-black text-lg">${parseFloat(e.amount).toFixed(0)}</div>
-                </div>`;
-            }).join('') || '<p class="text-center text-gray-300 py-10 text-sm">История пуста</p>';
+                return `
+                    <div class="bg-white p-5 rounded-2xl border border-gray-50 card-shadow flex justify-between items-center">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-shopping-bag text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-800">${e.description}</div>
+                                <div class="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Платил: ${payer}</div>
+                            </div>
+                        </div>
+                        <div class="text-right font-black text-gray-900 text-lg">${parseFloat(e.amount).toFixed(0)} ₪</div>
+                    </div>`;
+            }).join('') || '<div class="text-center py-10 text-gray-300 italic text-sm">Расходов пока нет</div>';
         }
 
         async function openParticipantModal() {
@@ -116,28 +186,38 @@
         async function openExpenseModal() {
             const res = await fetch(`/api/trips/${currentTripId}`);
             const data = await res.json();
-            if(!data.participants.length) return alert("Добавьте участников!");
-            const amount = prompt("Сумма:");
-            const desc = prompt("На что?");
+            if(!data.participants.length) return alert("Сначала добавьте участников!");
+
+            const amount = prompt("Сумма (₪):");
+            if(!amount || isNaN(amount)) return;
+            const desc = prompt("На что потратили?");
+            if(!desc) return;
+
             const menu = data.participants.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
-            const choice = prompt("КТО ЗАПЛАТИЛ? Введите номер:\n" + menu);
+            const choice = prompt("КТО ЗАПЛАТИЛ? (Введите номер):\n" + menu);
             const idx = parseInt(choice) - 1;
+
             if (data.participants[idx]) {
                 await fetch(`/api/trips/${currentTripId}/expenses`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ payer_id: data.participants[idx].id, amount: parseFloat(amount), description: desc })
+                    body: JSON.stringify({ 
+                        payer_id: data.participants[idx].id, 
+                        amount: parseFloat(amount), 
+                        description: desc 
+                    })
                 });
                 loadTripData();
             }
         }
 
         async function deleteCurrentTrip() {
-            if(confirm("Удалить поездку?")) {
+            if(confirm("Удалить эту поездку?")) {
                 await fetch(`/api/trips/${currentTripId}`, { method: 'DELETE' });
                 goHome();
             }
         }
+
         window.onload = loadTrips;
     </script>
 </body>
