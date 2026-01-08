@@ -143,10 +143,27 @@
             loadTripData();
         }
 
-        async function loadTripData() {
-            const res = await fetch(`/api/trips/${currentTripId}`);
-            tripData = await res.json();
-            document.getElementById('tripName').innerText = tripData.trip.name;
+        async function loadTrips() {
+    const res = await fetch('/api/trips');
+    const trips = await res.json();
+    document.getElementById('trips-list').innerHTML = trips.map(t => `
+        <div class="bg-white p-5 rounded-2xl card-shadow border border-slate-50 flex justify-between items-center active:scale-[0.98] transition-all">
+            <div onclick="openTrip('${t.id}')" class="flex-1 cursor-pointer">
+                <span class="font-bold text-lg text-slate-800">${t.name}</span>
+            </div>
+            <button onclick="deleteTrip('${t.id}', '${t.name}')" class="ml-4 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+async function deleteTrip(id, name) {
+    if (confirm(`Удалить поездку "${name}" и все расходы?`)) {
+        await fetch(`/api/trips/${id}`, { method: 'DELETE' });
+        loadTrips(); // Обновляем список
+    }
+}
             
             // Участники
             document.getElementById('participantsList').innerHTML = tripData.participants.map(p => 
