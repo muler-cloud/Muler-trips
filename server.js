@@ -37,9 +37,12 @@ db.serialize(() => {
 
 // 1. Проверка пароля
 app.post('/api/login', (req, res) => {
-    if (req.body.password === MY_PASSWORD) {
+    console.log("Попытка входа с паролем:", req.body.password); // Это появится в логах Render
+    if (String(req.body.password) === String(MY_PASSWORD)) {
+        console.log("Пароль верный!");
         res.json({ success: true });
     } else {
+        console.log("Пароль не совпал. Ожидалось:", MY_PASSWORD);
         res.status(401).json({ error: 'Неверный пароль' });
     }
 });
@@ -144,5 +147,6 @@ app.get('*', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
 
 
