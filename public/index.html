@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TravelSplit — Наш бюджет</title>
+    <title>TravelSplit — Мои поездки</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         .trip-gradient { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
         input, select { font-size: 16px !important; }
     </style>
 </head>
@@ -21,304 +22,17 @@
             <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <i class="fa-solid fa-lock text-2xl"></i>
             </div>
-            <h2 class="text-xl font-bold mb-2 text-slate-800">Введите пароль</h2>
-            <input type="password" id="passInput" placeholder="****" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mb-4 text-center text-2xl tracking-widest outline-none focus:border-blue-500">
+            <h2 class="text-xl font-bold mb-2">Вход</h2>
+            <input type="password" id="passInput" placeholder="****" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl mb-4 text-center text-2xl outline-none focus:border-blue-500">
             <button onclick="checkPass()" class="w-full trip-gradient text-white font-bold py-4 rounded-2xl shadow-lg">Войти</button>
-            <p id="passError" class="text-red-500 text-xs mt-3 hidden font-bold">Неверный пароль!</p>
+            <p id="passError" class="text-red-500 text-xs mt-3 hidden">Неверный пароль!</p>
         </div>
     </div>
 
     <nav class="bg-white border-b sticky top-0 z-40">
         <div class="max-w-xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2" onclick="location.href='/'" style="cursor:pointer">
+            <div class="flex items-center gap-2" onclick="goHome()" style="cursor:pointer">
                 <div class="w-8 h-8 trip-gradient rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-euro-sign"></i></div>
                 <span class="font-bold text-xl">TravelSplit</span>
             </div>
-            <button onclick="shareLink()" id="shareBtn" class="hidden bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold">
-                <i class="fa-solid fa-share"></i>
-            </button>
-        </div>
-    </nav>
-
-    <div id="create-view" class="hidden max-w-md mx-auto px-6 pt-12">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-900 mb-2">Куда едем?</h1>
-        </div>
-        <form onsubmit="createTrip(event)" class="space-y-4">
-            <input type="text" id="newTripName" placeholder="Напр: Евротур 2026" required class="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl outline-none shadow-sm">
-            <button type="submit" class="w-full trip-gradient text-white font-bold py-5 rounded-2xl shadow-lg">Создать путешествие</button>
-        </form>
-    </div>
-
-    <div id="trip-view" class="hidden max-w-xl mx-auto p-4 space-y-4">
-        <div class="trip-gradient rounded-3xl p-6 text-white shadow-xl">
-            <h1 id="tripName" class="text-2xl font-bold"></h1>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold">Компания</h3>
-                <button onclick="openModal('addParticipantModal')" class="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1 rounded-lg">+ Друг</button>
-            </div>
-            <div id="participantsList" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <h3 class="font-bold mb-4 italic">Кто кому должен:</h3>
-            <div id="debtsList" class="space-y-3"></div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <h3 class="font-bold mb-4">Траты</h3>
-            <div class="h-48"><canvas id="expensesChart"></canvas></div>
-        </div>
-    </div>
-
-    <div id="actionButtons" class="hidden fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-        <button onclick="openTransferModal()" class="w-14 h-14 rounded-2xl bg-emerald-500 text-white shadow-lg flex items-center justify-center active:scale-90 transition-transform">
-            <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
-        </button>
-        <button onclick="openExpenseModal()" class="w-16 h-16 rounded-2xl trip-gradient text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform border-4 border-white">
-            <i class="fa-solid fa-plus text-2xl"></i>
-        </button>
-    </div>
-
-    <div id="expenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl p-6">
-            <h3 class="text-xl font-bold mb-4">Новый расход</h3>
-            <select id="expPayer" class="w-full p-4 bg-slate-50 rounded-xl mb-4"></select>
-            <input type="text" id="expDesc" placeholder="Что купили?" class="w-full p-4 bg-slate-50 rounded-xl mb-4">
-            <input type="number" id="expAmount" placeholder="Сумма (€)" class="w-full p-4 bg-blue-50 rounded-xl mb-6 font-bold text-xl">
-            <button onclick="submitExpense()" class="w-full py-4 trip-gradient text-white rounded-2xl font-bold">Сохранить</button>
-            <button onclick="closeModal('expenseModal')" class="w-full py-4 text-slate-400 font-bold">Отмена</button>
-        </div>
-    </div>
-
-    <div id="transferModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl p-6">
-            <h3 class="text-xl font-bold mb-4 text-emerald-600">Кто вернул долг?</h3>
-            <select id="trFrom" class="w-full p-4 bg-slate-50 rounded-xl mb-2"></select>
-            <div class="text-center py-2 text-slate-300"><i class="fa-solid fa-arrow-down"></i></div>
-            <select id="trTo" class="w-full p-4 bg-slate-50 rounded-xl mb-4"></select>
-            <input type="number" id="trAmount" placeholder="Сколько? (€)" class="w-full p-4 bg-emerald-50 rounded-xl mb-6 font-bold text-xl">
-            <button onclick="submitTransfer()" class="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold">Записать перевод</button>
-            <button onclick="closeModal('transferModal')" class="w-full py-4 text-slate-400 font-bold">Отмена</button>
-        </div>
-    </div>
-
-    <div id="addParticipantModal" class="hidden fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl">
-            <h3 class="text-lg font-bold mb-4 text-center">Имя друга</h3>
-            <input type="text" id="newPartName" class="w-full p-4 bg-slate-50 rounded-xl mb-4 outline-none border-2 border-slate-100">
-            <button onclick="addParticipant()" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold">Добавить</button>
-        </div>
-    </div>
-
-    <script>
-        let currentTripId = null;
-        let tripData = null;
-        let chartInstance = null;
-
-        // ПРОВЕРКА ПАРОЛЯ ПРИ ЗАГРУЗКЕ
-        document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('site_access') === 'true') {
-                document.getElementById('login-screen').classList.add('hidden');
-                initApp();
-            }
-        });
-
-        async function checkPass() {
-            const pass = document.getElementById('passInput').value;
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ password: pass })
-            });
-            if (res.ok) {
-                localStorage.setItem('site_access', 'true');
-                document.getElementById('login-screen').classList.add('hidden');
-                initApp();
-            } else {
-                document.getElementById('passError').classList.remove('hidden');
-            }
-        }
-
-        function initApp() {
-            const path = window.location.pathname;
-            if (path.startsWith('/trip/')) {
-                currentTripId = path.split('/trip/')[1];
-                localStorage.setItem('last_trip', currentTripId); // ЗАПОМНИТЬ ПОЕЗДКУ
-                loadTripData();
-                showScreen('trip-view');
-            } else {
-                const lastId = localStorage.getItem('last_trip');
-                if (lastId) {
-                    window.history.pushState({}, '', `/trip/${lastId}`);
-                    currentTripId = lastId;
-                    loadTripData();
-                    showScreen('trip-view');
-                } else {
-                    showScreen('create-view');
-                }
-            }
-        }
-
-        function showScreen(id) {
-            document.getElementById('create-view').classList.add('hidden');
-            document.getElementById('trip-view').classList.add('hidden');
-            document.getElementById('actionButtons').classList.add('hidden');
-            document.getElementById('shareBtn').classList.add('hidden');
-            document.getElementById(id).classList.remove('hidden');
-            if (id === 'trip-view') {
-                document.getElementById('actionButtons').classList.remove('hidden');
-                document.getElementById('shareBtn').classList.remove('hidden');
-            }
-        }
-
-        async function createTrip(e) {
-            e.preventDefault();
-            const body = { name: document.getElementById('newTripName').value };
-            const res = await fetch('/api/trips', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
-            window.history.pushState({}, '', `/trip/${data.id}`);
-            currentTripId = data.id;
-            localStorage.setItem('last_trip', currentTripId);
-            loadTripData();
-            showScreen('trip-view');
-        }
-
-        async function loadTripData() {
-            const res = await fetch(`/api/trips/${currentTripId}`);
-            if (!res.ok) return;
-            tripData = await res.json();
-            renderTrip();
-        }
-
-        function renderTrip() {
-            document.getElementById('tripName').innerText = tripData.trip.name;
-            const partsDiv = document.getElementById('participantsList');
-            partsDiv.innerHTML = tripData.participants.map(p => 
-                `<span class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-sm font-bold border border-slate-200">${p.name}</span>`
-            ).join('');
-
-            const opts = tripData.participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            document.getElementById('expPayer').innerHTML = opts;
-            document.getElementById('trFrom').innerHTML = opts;
-            document.getElementById('trTo').innerHTML = opts;
-
-            renderAnalytics();
-        }
-
-        function renderAnalytics() {
-            const balances = {...tripData.balances};
-            let debtors = [], creditors = [];
-            for (const [id, amount] of Object.entries(balances)) {
-                const name = tripData.participants.find(p => p.id == id)?.name || '???';
-                if (amount < -0.01) debtors.push({id, name, amount});
-                if (amount > 0.01) creditors.push({id, name, amount});
-            }
-
-            let transactions = [];
-            let dArr = JSON.parse(JSON.stringify(debtors.sort((a,b) => a.amount - b.amount)));
-            let cArr = JSON.parse(JSON.stringify(creditors.sort((a,b) => b.amount - a.amount)));
-            let d = 0, c = 0;
-            while (d < dArr.length && c < cArr.length) {
-                let amount = Math.min(Math.abs(dArr[d].amount), cArr[c].amount);
-                transactions.push({ from: dArr[d].name, to: cArr[c].name, amount });
-                dArr[d].amount += amount; cArr[c].amount -= amount;
-                if (Math.abs(dArr[d].amount) < 0.01) d++;
-                if (cArr[c].amount < 0.01) c++;
-            }
-
-            const debtsList = document.getElementById('debtsList');
-            debtsList.innerHTML = transactions.length ? transactions.map(t => `
-                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span class="text-sm"><b>${t.from}</b> ➔ ${t.to}</span>
-                    <span class="font-bold text-red-500">${t.amount.toFixed(1)} €</span>
-                </div>
-            `).join('') : '<div class="text-center text-slate-400 py-4 text-sm font-bold">Никто ничего не должен ✨</div>';
-
-            let spending = {};
-            tripData.participants.forEach(p => spending[p.name] = 0);
-            tripData.expenses.forEach(e => {
-                const name = tripData.participants.find(p => p.id === e.payer_id)?.name;
-                if(name) spending[name] += e.amount;
-            });
-
-            const ctx = document.getElementById('expensesChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(spending),
-                    datasets: [{
-                        data: Object.values(spending),
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                        borderWidth: 4
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-
-        async function addParticipant() {
-            const name = document.getElementById('newPartName').value;
-            if (!name) return;
-            await fetch(`/api/trips/${currentTripId}/participants`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name})
-            });
-            document.getElementById('newPartName').value = '';
-            closeModal('addParticipantModal');
-            loadTripData();
-        }
-
-        async function submitExpense() {
-            const payer_id = document.getElementById('expPayer').value;
-            const amount = parseFloat(document.getElementById('expAmount').value);
-            const description = document.getElementById('expDesc').value;
-            if (!amount || !description) return alert('Укажите сумму и описание');
-            await fetch(`/api/trips/${currentTripId}/expenses`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ payer_id, amount, description, date: new Date().toISOString().split('T')[0], split_type: 'equal' })
-            });
-            closeModal('expenseModal');
-            document.getElementById('expAmount').value = '';
-            document.getElementById('expDesc').value = '';
-            loadTripData();
-        }
-
-        async function submitTransfer() {
-            const body = {
-                from_id: document.getElementById('trFrom').value,
-                to_id: document.getElementById('trTo').value,
-                amount: document.getElementById('trAmount').value,
-                date: new Date().toISOString().split('T')[0]
-            };
-            await fetch(`/api/trips/${currentTripId}/transfers`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
-            closeModal('transferModal');
-            document.getElementById('trAmount').value = '';
-            loadTripData();
-        }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function openExpenseModal() { openModal('expenseModal'); }
-        function openTransferModal() { openModal('transferModal'); }
-        function shareLink() {
-            navigator.clipboard.writeText(window.location.href);
-            alert('Ссылка на поездку скопирована! Отправь её друзьям.');
-        }
-    </script>
-</body>
-</html>
+            <button onclick="shareLink()" id="shareBtn" class="hidden bg-gray-100 text-gray-700 px-
