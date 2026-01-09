@@ -56,7 +56,7 @@
             <input type="text" id="expDesc" class="w-full p-4 bg-gray-50 rounded-xl mb-6 outline-none" placeholder="За что?">
             
             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 px-1">Кто платил?</label>
-            <select id="expPayer" class="w-full p-4 bg-gray-100 rounded-xl mb-6 font-bold outline-none appearance-none"></select>
+            <select id="expPayer" class="w-full p-4 bg-gray-100 rounded-xl mb-6 font-bold text-lg outline-none appearance-none"></select>
 
             <div class="flex justify-between items-center mb-2 px-1">
                 <label class="text-[10px] font-bold text-gray-400 uppercase">За кого делим?</label>
@@ -122,10 +122,13 @@
             document.getElementById('tripTitle').innerText = data.trip.name;
 
             // БАЛАНСЫ
-            document.getElementById('balances').innerHTML = data.participants.map(p => {
-                const b = data.balances[p.id] || 0;
-                return `<div class="flex justify-between font-bold text-sm"><span>${p.name}</span><span class="${b >= 0 ? 'text-green-500' : 'text-red-500'}">${b.toFixed(2)} €</span></div>`;
-            }).join('') || '<p class="text-center text-gray-300">Нет участников</p>';
+document.getElementById('balances').innerHTML = data.participants.map(p => {
+    const b = data.balances[p.id] || 0;
+    return `<div class="flex justify-between items-center py-1">
+        <span class="font-bold text-lg text-gray-800">${p.name}</span>
+        <span class="${b >= 0 ? 'text-green-500' : 'text-red-500'} font-black text-lg">${b.toFixed(2)} €</span>
+    </div>`;
+}).join('') || '<p class="text-center text-gray-300">Нет участников</p>';
 
             // ДОЛГИ (КТО КОМУ)
             document.getElementById('debtsList').innerHTML = data.debts.map(d => `
@@ -160,11 +163,11 @@
 
             document.getElementById('expPayer').innerHTML = data.participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
             document.getElementById('expForWhom').innerHTML = data.participants.map(p => `
-                <div class="relative">
-                    <input type="checkbox" id="u_${p.id}" value="${p.id}" class="hidden checkbox-custom" checked>
-                    <label for="u_${p.id}" class="block p-3 text-center rounded-xl border-2 border-gray-100 font-bold text-xs transition-all cursor-pointer truncate">${p.name}</label>
-                </div>
-            `).join('');
+    <div class="relative">
+        <input type="checkbox" id="u_${p.id}" value="${p.id}" class="hidden checkbox-custom" checked>
+        <label for="u_${p.id}" class="block p-4 text-center rounded-xl border-2 border-gray-100 font-bold text-sm transition-all cursor-pointer truncate">${p.name}</label>
+    </div>
+`).join('');
             document.getElementById('expense-modal').classList.remove('hidden');
         }
 
