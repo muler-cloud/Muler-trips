@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TravelSplit Euro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .hidden { display: none; }
+        .checkbox-custom:checked + label { background: #2563eb; color: white; border-color: #2563eb; }
+        body { font-family: -apple-system, sans-serif; background: #f9fafb; }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="bg-white border-b sticky top-0 z-30 p-4 flex justify-between items-center shadow-sm">
+        <h1 class="text-xl font-black text-blue-600 cursor-pointer" onclick="goHome()">TRAVELSPLIT €</h1>
+    </header>
+
+    <main class="p-4 max-w-md mx-auto">
+        <div id="home-view">
+            <h2 class="text-3xl font-black mb-6 text-gray-800">Мои поездки</h2>
+            <div id="tripsList" class="space-y-3"></div>
+            <button onclick="showScreen('create-view')" class="w-full mt-6 bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-lg">+ Новая поездка</button>
+        </div>
+
+        <div id="create-view" class="hidden">
+            <h2 class="text-2xl font-bold mb-6">Куда едем?</h2>
+            <input type="text" id="newTripName" class="w-full p-4 border rounded-2xl mb-4 shadow-sm text-lg outline-none" placeholder="Напр: Берлин 2026">
+            <button onclick="createTrip()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold">Создать</button>
+            <button onclick="goHome()" class="w-full mt-2 text-gray-400 font-bold p-4">Отмена</button>
+        </div>
+
+        <div id="trip-view" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="tripTitle" class="text-2xl font-black text-gray-800 truncate pr-4"></h2>
+                <button onclick="goHome()" class="text-blue-600 font-bold text-sm">Назад</button>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Баланс и Расчеты</h3>
+                <div id="balances" class="space-y-4 mb-6"></div>
+                <div id="debtsList" class="pt-4 border-t border-dashed space-y-2"></div>
+            </div>
+
+            <h3 class="font-bold text-gray-400 uppercase text-[10px] mb-3 px-2">История трат</h3>
+            <div id="expensesList" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <div id="expense-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-end">
+        <div class="bg-white w-full rounded-t-[2rem] p-6 shadow-2xl overflow-y-auto max-h-[85vh]">
+            <h3 class="text-xl font-bold mb-6">Новый расход</h3>
+            <input type="number" id="expAmount" class="w-full p-4 bg-gray-50 rounded-xl mb-3 text-2xl font-bold outline-none" placeholder="0.00 €">
+            <input type="text" id="expDesc" class="w-full p-4 bg-gray-50 rounded-xl mb-6 outline-none" placeholder="За что?">
+            
+            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 px-1">Кто платил?</label>
+            <select id="expPayer" class="w-full p-4 bg-gray-100 rounded-xl mb-6 font-bold text-lg outline-none appearance-none"></select>
+
+            <div class="flex justify-between items-center mb-2 px-1">
+                <label class="text-[10px] font-bold text-gray-400 uppercase">За кого делим?</label>
+                <div class="flex gap-2">
+                    <button onclick="selectAll(true)" class="text-[10px] text-blue-600 font-bold uppercase">Все</button>
+                    <button onclick="selectAll(false)" class="text-[10px] text-gray-400 font-bold uppercase">Никто</button>
+                </div>
+            </div>
+            <div id="expForWhom" class="grid grid-cols-2 gap-2 mb-8"></div>
+
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 p-4 font-bold text-gray-400">Отмена</button>
+                <button onclick="saveExpense()" class="flex-[2] bg-blue-600 text-white p-4 rounded-xl font-bold">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="actionButtons" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 w-full max-w-xs px-4">
+        <button onclick="addPerson()" class="flex-1 bg-white border-2 border-blue-600 text-blue-600 p-4 rounded-2xl font-bold shadow-xl"><i class="fas fa-user-plus"></i></button>
+        <button onclick="openExpenseUI()" class="flex-[3] bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-xl">Добавить €</button>
+    </div>
+
+    <script>
+        let currentTripId = null;
+
+        function showScreen(id) {
+            ['home-view','create-view','trip-view','actionButtons'].forEach(e => document.getElementById(e).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            if(id==='trip-view') document.getElementById('actionButtons').classList.remove('hidden');
+        }
+
+        function goHome() { currentTripId = null; showScreen('home-view'); loadTrips(); }
+
+        async function loadTrips() {
+            try {
+                const res = await fetch('/api/trips');
+                const data = await res.json();
+                document.getElementById('tripsList').innerHTML = data.map(t => `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div onclick="openTrip('${t.id}')" class="flex-grow font-bold text-lg text-gray-700 cursor-pointer">${t.name}</div>
+                        <button onclick="deleteTrip('${t.id}')" class="text-gray-300 hover:text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                    </div>
+                `).join('') || '<p class="text-center text-gray-400 py-10">Поездок нет</p>';
+            } catch(e) { console.error(e); }
+        }
+
+        async function createTrip() {
+            const name = document.getElementById('newTripName').value.trim();
+            if(!name) return alert("Введите название!");
+            
+            const res = await fetch('/api/trips', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ name }) 
+            });
+            const data = await res.json();
+            document.getElementById('newTripName').value = '';
+            openTrip(data.id);
+        }
+
+        async function deleteTrip(id) {
+            if(confirm("Удалить поездку?")) { 
+                await fetch(`/api/trips/${id}`, { method: 'DELETE' }); 
+                loadTrips(); 
+            }
+        }
+
+        async function openTrip(id) { currentTripId = id; showScreen('trip-view'); loadTripData(); }
+
+        async function loadTripData() {
+            const res = await fetch(`/api/trips/${currentTripId}`);
+            const data = await res.json();
+            document.getElementById('tripTitle').innerText = data.trip.name;
+
+            // БАЛАНСЫ (УВЕЛИЧЕННЫЙ ШРИФТ)
+            document.getElementById('balances').innerHTML = data.participants.map(p => {
+                const b = data.balances[p.id] || 0;
+                return `<div class="flex justify-between items-center font-bold text-lg py-0.5">
+                    <span class="text-gray-800">${p.name}</span>
+                    <span class="${b >= 0 ? 'text-green-500' : 'text-red-500'}">${b.toFixed(2)} €</span>
+                </div>`;
+            }).join('') || '<p class="text-center text-gray-300">Нет участников</p>';
+
+            // ДОЛГИ
+            document.getElementById('debtsList').innerHTML = data.debts.map(d => `
+                <div class="flex items-center justify-between bg-blue-50 p-3 rounded-xl text-xs font-bold text-blue-700">
+                    <span class="w-1/3 text-left truncate">${d.from}</span>
+                    <span class="flex-grow text-center bg-white mx-2 py-1 rounded shadow-sm text-[11px]">отдает ${d.amount} €</span>
+                    <span class="w-1/3 text-right truncate">${d.to}</span>
+                </div>
+            `).join('') || (data.participants.length > 1 ? '<p class="text-center text-[10px] text-green-500 font-bold uppercase">Все в расчете!</p>' : '');
+
+            // ИСТОРИЯ
+            document.getElementById('expensesList').innerHTML = data.expenses.slice().reverse().map(e => {
+                const payer = data.participants.find(p => String(p.id) === String(e.payer_id))?.name || '???';
+                return `<div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 flex justify-between items-center">
+                    <div><div class="font-bold text-sm text-gray-800">${e.description}</div><div class="text-[9px] text-gray-400 font-bold uppercase">ПЛАТИЛ: ${payer}</div></div>
+                    <div class="font-black text-blue-600 text-lg">${parseFloat(e.amount).toFixed(0)} €</div>
+                </div>`;
+            }).join('') || '<p class="text-center text-gray-300 py-10">Трат пока нет</p>';
+        }
+
+        async function addPerson() {
+            const name = prompt("Имя участника:");
+            if(!name) return;
+            await fetch(`/api/trips/${currentTripId}/participants`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ name }) 
+            });
+            loadTripData();
+        }
+
+        async function openExpenseUI() {
+            const res = await fetch(`/api/trips/${currentTripId}`);
+            const data = await res.json();
+            if(!data.participants.length) return alert("Сначала добавьте людей");
+
+            document.getElementById('expPayer').innerHTML = data.participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            
+            // УВЕЛИЧЕННЫЕ ЧЕКБОКСЫ ДЛЯ МОБИЛКИ
+            document.getElementById('expForWhom').innerHTML = data.participants.map(p => `
+                <div class="relative">
+                    <input type="checkbox" id="u_${p.id}" value="${p.id}" class="hidden checkbox-custom" checked>
+                    <label for="u_${p.id}" class="block p-4 text-center rounded-xl border-2 border-gray-100 font-bold text-sm transition-all cursor-pointer truncate">${p.name}</label>
+                </div>
+            `).join('');
+            document.getElementById('expense-modal').classList.remove('hidden');
+        }
+
+        function selectAll(v) { document.querySelectorAll('#expForWhom input').forEach(c => c.checked = v); }
+        function closeModal() { document.getElementById('expense-modal').classList.add('hidden'); }
+
+        async function saveExpense() {
+            const amount = document.getElementById('expAmount').value;
+            const description = document.getElementById('expDesc').value;
+            const payer_id = document.getElementById('expPayer').value;
+            const split_between = Array.from(document.querySelectorAll('#expForWhom input:checked')).map(c => c.value);
+
+            if(!amount || !description || !split_between.length) return alert("Заполните все поля!");
+
+            await fetch(`/api/trips/${currentTripId}/expenses`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ payer_id, amount, description, split_between })
+            });
+            closeModal();
+            // Сбрасываем поля
+            document.getElementById('expAmount').value = '';
+            document.getElementById('expDesc').value = '';
+            loadTripData();
+        }
+
+        window.onload = loadTrips;
+    </script>
+</body>
+</html>
