@@ -6,18 +6,20 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Настройка чтения данных
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к базе данных MongoDB Atlas
-const MONGO_URI = process.env.MONGODB_URI;
+// Сервер проверит все возможные варианты имени переменной в Render
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URL || process.env.DATABASE_URL;
+
+if (!MONGO_URI) {
+  console.error('CRITICAL ERROR: No MongoDB connection string found in environment variables!');
+}
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB Atlas successfully!'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Схема для поездок (как данные хранятся в базе)
 const TripSchema = new mongoose.Schema({
   name: { type: String, required: true },
   participants: { type: [String], default: [] },
@@ -26,7 +28,6 @@ const TripSchema = new mongoose.Schema({
 
 const Trip = mongoose.model('Trip', TripSchema);
 
-// 1. Получить все поездки (Защищено от пустой базы)
 app.get('/api/trips', async (req, res) => {
   try {
     const trips = await Trip.find({});
@@ -36,24 +37,28 @@ app.get('/api/trips', async (req, res) => {
   }
 });
 
-// 2. Создать новую поездку
 app.post('/api/trips', async (req, res) => {
   try {
+    console.log('Attempting to create trip with data:', req.body);
     const newTrip = new Trip({
-      name: req.body.name,
+      name: req.body.name || 'Новая поездка',
       participants: [],
       expenses: []
     });
     const savedTrip = await newTrip.save();
+    console.log('Trip successfully saved:', savedTrip);
     res.json(savedTrip);
   } catch (err) {
+    console.error('Failed to save trip:', err.message);
     res.status(500).json({ error: 'Database save error', details: err.message });
   }
 });
 
-// 3. Получить конкретную поездку
 app.get('/api/trips/:id', async (req, res) => {
   try {
+    if (req.params.id === 'undefined') {
+      return res.status(400).json({ error: 'Invalid trip ID' });
+    }
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ error: 'Trip not found' });
     res.json(trip);
@@ -62,9 +67,11 @@ app.get('/api/trips/:id', async (req, res) => {
   }
 });
 
-// 4. Добавить участника или расход в поездку
 app.put('/api/trips/:id', async (req, res) => {
   try {
+    if (req.params.id === 'undefined') {
+      return res.status(400).json({ error: 'Invalid trip ID' });
+    }
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
@@ -78,7 +85,6 @@ app.put('/api/trips/:id', async (req, res) => {
   }
 });
 
-// Запуск сервера
 app.listen(PORT, () => {
   console.log(`Server is running perfectly on port ${PORT}`);
 });
