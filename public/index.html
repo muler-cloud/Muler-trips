@@ -2,215 +2,226 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TravelSplit Euro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .hidden { display: none; }
-        .checkbox-custom:checked + label { background: #2563eb; color: white; border-color: #2563eb; }
-        body { font-family: -apple-system, sans-serif; background: #f9fafb; }
+        /* Стили для гарантированного увеличения шрифтов во всем приложении */
+        body {
+            font-size: 1.25rem; /* Увеличиваем базовый шрифт */
+        }
+        input, button, select {
+            font-size: 1.25rem !important;
+        }
     </style>
 </head>
-<body class="pb-24">
+<body class="bg-gray-50 text-gray-900 font-sans">
 
-    <header class="bg-white border-b sticky top-0 z-30 p-4 flex justify-between items-center shadow-sm">
-        <h1 class="text-xl font-black text-blue-600 cursor-pointer" onclick="goHome()">TRAVELSPLIT €</h1>
-    </header>
-
-    <main class="p-4 max-w-md mx-auto">
-        <div id="home-view">
-            <h2 class="text-3xl font-black mb-6 text-gray-800">Мои поездки</h2>
-            <div id="tripsList" class="space-y-3"></div>
-            <button onclick="showScreen('create-view')" class="w-full mt-6 bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-lg">+ Новая поездка</button>
+    <div id="main-screen" class="max-w-md mx-auto px-4 py-8">
+        <h1 class="text-4xl font-black text-blue-700 text-center mb-8 tracking-tight">TRAVELSPLIT €</h1>
+        
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">Мои поездки</h2>
+            <button onclick="createNewTrip()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 px-6 rounded-xl transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+                <span>+ Новая поездка</span>
+            </button>
         </div>
 
-        <div id="create-view" class="hidden">
-            <h2 class="text-2xl font-bold mb-6">Куда едем?</h2>
-            <input type="text" id="newTripName" class="w-full p-4 border rounded-2xl mb-4 shadow-sm text-lg outline-none" placeholder="Напр: Берлин 2026">
-            <button onclick="createTrip()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold">Создать</button>
-            <button onclick="goHome()" class="w-full mt-2 text-gray-400 font-bold p-4">Отмена</button>
-        </div>
-
-        <div id="trip-view" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="tripTitle" class="text-2xl font-black text-gray-800 truncate pr-4"></h2>
-                <button onclick="goHome()" class="text-blue-600 font-bold text-sm">Назад</button>
-            </div>
-
-            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
-                <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Баланс и Расчеты</h3>
-                <div id="balances" class="space-y-4 mb-6"></div>
-                <div id="debtsList" class="pt-4 border-t border-dashed space-y-2"></div>
-            </div>
-
-            <h3 class="font-bold text-gray-400 uppercase text-[10px] mb-3 px-2">История трат</h3>
-            <div id="expensesList" class="space-y-3"></div>
-        </div>
-    </main>
-
-    <div id="expense-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-end">
-        <div class="bg-white w-full rounded-t-[2rem] p-6 shadow-2xl overflow-y-auto max-h-[85vh]">
-            <h3 class="text-xl font-bold mb-6">Новый расход</h3>
-            <input type="number" id="expAmount" class="w-full p-4 bg-gray-50 rounded-xl mb-3 text-2xl font-bold outline-none" placeholder="0.00 €">
-            <input type="text" id="expDesc" class="w-full p-4 bg-gray-50 rounded-xl mb-6 outline-none" placeholder="За что?">
-            
-            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 px-1">Кто платил?</label>
-            <select id="expPayer" class="w-full p-4 bg-gray-100 rounded-xl mb-6 font-bold text-lg outline-none appearance-none"></select>
-
-            <div class="flex justify-between items-center mb-2 px-1">
-                <label class="text-[10px] font-bold text-gray-400 uppercase">За кого делим?</label>
-                <div class="flex gap-2">
-                    <button onclick="selectAll(true)" class="text-[10px] text-blue-600 font-bold uppercase">Все</button>
-                    <button onclick="selectAll(false)" class="text-[10px] text-gray-400 font-bold uppercase">Никто</button>
-                </div>
-            </div>
-            <div id="expForWhom" class="grid grid-cols-2 gap-2 mb-8"></div>
-
-            <div class="flex gap-3">
-                <button onclick="closeModal()" class="flex-1 p-4 font-bold text-gray-400">Отмена</button>
-                <button onclick="saveExpense()" class="flex-[2] bg-blue-600 text-white p-4 rounded-xl font-bold">Сохранить</button>
-            </div>
-        </div>
+        <div id="trips-list" class="space-y-4"></div>
     </div>
 
-    <div id="actionButtons" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 w-full max-w-xs px-4">
-        <button onclick="addPerson()" class="flex-1 bg-white border-2 border-blue-600 text-blue-600 p-4 rounded-2xl font-bold shadow-xl"><i class="fas fa-user-plus"></i></button>
-        <button onclick="openExpenseUI()" class="flex-[3] bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-xl">Добавить €</button>
+    <div id="trip-screen" class="hidden max-w-md mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="showMainScreen()" class="text-blue-600 font-bold hover:underline flex items-center gap-1">
+                ← Назад
+            </button>
+            <h1 id="trip-title" class="text-3xl font-black text-gray-800 tracking-tight">Поездка</h1>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-6 mb-6 border border-gray-100">
+            <h3 class="text-xl font-black text-gray-700 mb-4 uppercase tracking-wider">Участники</h3>
+            <div id="participants-list" class="flex flex-wrap gap-2 mb-4"></div>
+            
+            <div class="flex gap-2">
+                <input type="text" id="participant-name" placeholder="Имя участника" class="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none font-medium">
+                <button onclick="addParticipant()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-6 py-3 rounded-xl transition">
+                    + Добавить
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md p-6 mb-6 border border-gray-100">
+            <h3 class="text-xl font-black text-gray-700 mb-4 uppercase tracking-wider">Баланс и расчеты</h3>
+            <div id="balance-output" class="space-y-2 text-xl font-bold text-gray-600 italic">
+                Нет участников для расчета баланса.
+            </div>
+        </div>
     </div>
 
     <script>
         let currentTripId = null;
+        let currentTripData = null;
 
-        function showScreen(id) {
-            ['home-view','create-view','trip-view','actionButtons'].forEach(e => document.getElementById(e).classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            if(id==='trip-view') document.getElementById('actionButtons').classList.remove('hidden');
-        }
+        // При загрузке страницы сразу запрашиваем список поездок из базы данных
+        document.addEventListener('DOMContentLoaded', loadAllTrips);
 
-        function goHome() { currentTripId = null; showScreen('home-view'); loadTrips(); }
-
-        async function loadTrips() {
+        // 1. Загрузка всех поездок с сервера
+        async function loadAllTrips() {
             try {
-                const res = await fetch('/api/trips');
-                const data = await res.json();
-                document.getElementById('tripsList').innerHTML = data.map(t => `
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-                        <div onclick="openTrip('${t.id}')" class="flex-grow font-bold text-lg text-gray-700 cursor-pointer">${t.name}</div>
-                        <button onclick="deleteTrip('${t.id}')" class="text-gray-300 hover:text-red-500 p-2"><i class="fas fa-trash"></i></button>
-                    </div>
-                `).join('') || '<p class="text-center text-gray-400 py-10">Поездок нет</p>';
-            } catch(e) { console.error(e); }
-        }
+                const response = await fetch('/api/trips');
+                if (!response.ok) throw new Error('Ошибка сервера при получении списка');
+                
+                const trips = await response.json();
+                const listContainer = document.getElementById('trips-list');
+                listContainer.innerHTML = '';
 
-        async function createTrip() {
-            const name = document.getElementById('newTripName').value.trim();
-            if(!name) return alert("Введите название!");
-            
-            const res = await fetch('/api/trips', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ name }) 
-            });
-            const data = await res.json();
-            document.getElementById('newTripName').value = '';
-            openTrip(data.id);
-        }
+                if (trips.length === 0) {
+                    listContainer.innerHTML = `<p class="text-center text-gray-400 font-medium py-4">У вас пока нет созданных поездок.</p>`;
+                    return;
+                }
 
-        async function deleteTrip(id) {
-            if(confirm("Удалить поездку?")) { 
-                await fetch(`/api/trips/${id}`, { method: 'DELETE' }); 
-                loadTrips(); 
+                trips.forEach(trip => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full bg-white hover:bg-gray-50 text-left font-black text-2xl py-5 px-6 rounded-xl shadow-sm border border-gray-100 transition flex justify-between items-center";
+                    btn.onclick = () => openTrip(trip);
+                    btn.innerHTML = `
+                        <span class="text-gray-800">${trip.name}</span>
+                        <span class="text-blue-500 text-xl">→</span>
+                    `;
+                    listContainer.appendChild(btn);
+                });
+            } catch (err) {
+                console.error('Не удалось загрузить поездки:', err);
             }
         }
 
-        async function openTrip(id) { currentTripId = id; showScreen('trip-view'); loadTripData(); }
+        // 2. Создание новой поездки
+        async function createNewTrip() {
+            const name = prompt('Введите название поездки:', 'Мое путешествие');
+            if (!name || name.trim() === '') return;
 
-        async function loadTripData() {
-            const res = await fetch(`/api/trips/${currentTripId}`);
-            const data = await res.json();
-            document.getElementById('tripTitle').innerText = data.trip.name;
+            try {
+                const response = await fetch('/api/trips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim() })
+                });
 
-            // БАЛАНСЫ (УВЕЛИЧЕННЫЙ ШРИФТ)
-            document.getElementById('balances').innerHTML = data.participants.map(p => {
-                const b = data.balances[p.id] || 0;
-                return `<div class="flex justify-between items-center font-bold text-lg py-0.5">
-                    <span class="text-gray-800">${p.name}</span>
-                    <span class="${b >= 0 ? 'text-green-500' : 'text-red-500'}">${b.toFixed(2)} €</span>
-                </div>`;
-            }).join('') || '<p class="text-center text-gray-300">Нет участников</p>';
+                if (!response.ok) throw new Error('Ошибка при сохранении поездки в базу');
 
-            // ДОЛГИ
-            document.getElementById('debtsList').innerHTML = data.debts.map(d => `
-                <div class="flex items-center justify-between bg-blue-50 p-3 rounded-xl text-xs font-bold text-blue-700">
-                    <span class="w-1/3 text-left truncate">${d.from}</span>
-                    <span class="flex-grow text-center bg-white mx-2 py-1 rounded shadow-sm text-[11px]">отдает ${d.amount} €</span>
-                    <span class="w-1/3 text-right truncate">${d.to}</span>
-                </div>
-            `).join('') || (data.participants.length > 1 ? '<p class="text-center text-[10px] text-green-500 font-bold uppercase">Все в расчете!</p>' : '');
-
-            // ИСТОРИЯ
-            document.getElementById('expensesList').innerHTML = data.expenses.slice().reverse().map(e => {
-                const payer = data.participants.find(p => String(p.id) === String(e.payer_id))?.name || '???';
-                return `<div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 flex justify-between items-center">
-                    <div><div class="font-bold text-sm text-gray-800">${e.description}</div><div class="text-[9px] text-gray-400 font-bold uppercase">ПЛАТИЛ: ${payer}</div></div>
-                    <div class="font-black text-blue-600 text-lg">${parseFloat(e.amount).toFixed(0)} €</div>
-                </div>`;
-            }).join('') || '<p class="text-center text-gray-300 py-10">Трат пока нет</p>';
+                const savedTrip = await response.json();
+                
+                // ВАЖНО: MongoDB возвращает ID в поле `_id`
+                if (savedTrip && savedTrip._id) {
+                    openTrip(savedTrip);
+                } else {
+                    alert('Ошибка: сервер не вернул ID поездки.');
+                }
+            } catch (err) {
+                console.error('Ошибка создания поездки:', err);
+                alert('Не удалось создать поездку. Проверьте соединение с сервером.');
+            }
         }
 
-        async function addPerson() {
-            const name = prompt("Имя участника:");
-            if(!name) return;
-            await fetch(`/api/trips/${currentTripId}/participants`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ name }) 
-            });
-            loadTripData();
-        }
+        // 3. Открытие экрана конкретной поездки
+        function openTrip(trip) {
+            currentTripId = trip._id; // Фиксируем правильный ID из базы данных
+            currentTripData = trip;
 
-        async function openExpenseUI() {
-            const res = await fetch(`/api/trips/${currentTripId}`);
-            const data = await res.json();
-            if(!data.participants.length) return alert("Сначала добавьте людей");
-
-            document.getElementById('expPayer').innerHTML = data.participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            document.getElementById('main-screen').classList.add('hidden');
+            document.getElementById('trip-screen').classList.remove('hidden');
             
-            // УВЕЛИЧЕННЫЕ ЧЕКБОКСЫ ДЛЯ МОБИЛКИ
-            document.getElementById('expForWhom').innerHTML = data.participants.map(p => `
-                <div class="relative">
-                    <input type="checkbox" id="u_${p.id}" value="${p.id}" class="hidden checkbox-custom" checked>
-                    <label for="u_${p.id}" class="block p-4 text-center rounded-xl border-2 border-gray-100 font-bold text-sm transition-all cursor-pointer truncate">${p.name}</label>
-                </div>
-            `).join('');
-            document.getElementById('expense-modal').classList.remove('hidden');
+            document.getElementById('trip-title').innerText = trip.name;
+            document.getElementById('participant-name').value = '';
+
+            renderParticipantsAndBalance();
         }
 
-        function selectAll(v) { document.querySelectorAll('#expForWhom input').forEach(c => c.checked = v); }
-        function closeModal() { document.getElementById('expense-modal').classList.add('hidden'); }
+        // 4. Добавление участника в текущую поездку
+        async function addParticipant() {
+            const input = document.getElementById('participant-name');
+            const name = input.value.trim();
 
-        async function saveExpense() {
-            const amount = document.getElementById('expAmount').value;
-            const description = document.getElementById('expDesc').value;
-            const payer_id = document.getElementById('expPayer').value;
-            const split_between = Array.from(document.querySelectorAll('#expForWhom input:checked')).map(c => c.value);
+            if (!name) return;
+            if (!currentTripId || currentTripId === 'undefined') {
+                alert('Ошибка: ID поездки не определен!');
+                return;
+            }
 
-            if(!amount || !description || !split_between.length) return alert("Заполните все поля!");
+            // Добавляем имя в наш локальный массив данных
+            if (!currentTripData.participants) currentTripData.participants = [];
+            currentTripData.participants.push(name);
 
-            await fetch(`/api/trips/${currentTripId}/expenses`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ payer_id, amount, description, split_between })
+            try {
+                // Отправляем обновленный массив участников на сервер
+                const response = await fetch(`/api/trips/${currentTripId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        participants: currentTripData.participants,
+                        expenses: currentTripData.expenses
+                    })
+                });
+
+                if (!response.ok) throw new Error('Ошибка обновления данных на сервере');
+
+                const updatedTrip = await response.json();
+                currentTripData = updatedTrip; // Обновляем локальные данные ответом сервера
+
+                input.value = ''; // Очищаем поле ввода
+                renderParticipantsAndBalance(); // Перерисовываем экран
+            } catch (err) {
+                console.error('Не удалось добавить участника:', err);
+                alert('Ошибка при сохранении участника на сервере.');
+                // Откатываем локальное добавление в случае ошибки
+                currentTripData.participants.pop();
+            }
+        }
+
+        // 5. Отрисовка списка участников и расчет крупного баланса
+        function renderParticipantsAndBalance() {
+            const pList = document.getElementById('participants-list');
+            pList.innerHTML = '';
+
+            const parts = currentTripData.participants || [];
+
+            if (parts.length === 0) {
+                pList.innerHTML = `<span class="text-gray-400 font-medium py-2">Участников пока нет</span>`;
+                document.getElementById('balance-output').innerHTML = `<div class="text-xl text-gray-400 font-bold italic">Добавьте участников для расчетов.</div>`;
+                return;
+            }
+
+            // Выводим участников большими кнопками-плашками
+            parts.forEach(p => {
+                const badge = document.createElement('span');
+                badge.className = "bg-blue-50 text-blue-800 text-2xl font-black px-5 py-3 rounded-xl border border-blue-200 shadow-sm";
+                badge.innerText = p;
+                pList.appendChild(badge);
             });
-            closeModal();
-            // Сбрасываем поля
-            document.getElementById('expAmount').value = '';
-            document.getElementById('expDesc').value = '';
-            loadTripData();
+
+            // Формируем блок баланса крупными буквами
+            const balanceContainer = document.getElementById('balance-output');
+            balanceContainer.innerHTML = '';
+
+            parts.forEach(p => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center py-3 border-b border-gray-100 last:border-0";
+                row.innerHTML = `
+                    <span class="text-2xl font-black text-gray-800">${p}</span>
+                    <span class="text-2xl font-black text-emerald-600">0.00 €</span>
+                `;
+                balanceContainer.appendChild(row);
+            });
         }
 
-        window.onload = loadTrips;
+        // 6. Возврат на главный экран
+        function showMainScreen() {
+            document.getElementById('trip-screen').classList.add('hidden');
+            document.getElementById('main-screen').classList.remove('hidden');
+            currentTripId = null;
+            currentTripData = null;
+            loadAllTrips(); // Обновляем список поездок на главном экране
+        }
     </script>
 </body>
 </html>
